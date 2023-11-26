@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cadastro de Clientes</title>
+</head>
+<body>
+    <h1>Cadastro de Clientes</h1>
+    
+    <!-- Tela de Incluir Clientes -->
+    <div id="telaIncluirClientes">
+        <form id="clienteForm">
+            <label for="nome">Nome:</label>
+            <input type="text" id="nome" required><br>
+
+            <label for="sobrenome">Sobrenome:</label>
+            <input type="text" id="sobrenome" required><br>
+
+            <label for="dataNascimento">Data de Nascimento:</label>
+            <input type="date" id="dataNascimento" required><br>
+
+            <label for="email">E-mail:</label>
+            <input type="email" id="email" required><br>
+
+            <label for="cep">CEP:</label>
+            <input type="text" id="cep" required pattern="\d{5}-\d{3}"><br>
+
+            <button type="button" id="incluirCliente">Incluir Cliente</button>
+            <button type="button" id="limparTela">Limpar Tela</button>
+            <button type="button" id="chamarTelaLista">Ver Lista de Clientes</button>
+        </form>
+    </div>
+
+    <!-- Tela de Lista de Clientes -->
+    <div id="telaListaClientes" style="display:none;">
+        <h2>Lista de Clientes</h2>
+        <ul id="listaClientes"></ul>
+        <button type="button" id="voltarParaIncluir">Voltar para Incluir Clientes</button>
+    </div>
+
+    <script>
+        // Função para obter a lista de clientes do localStorage
+        function getListaClientes() {
+            return JSON.parse(localStorage.getItem('clientes')) || [];
+        }
+    
+        // Função para salvar a lista de clientes no localStorage
+        function saveListaClientes(listaClientes) {
+            localStorage.setItem('clientes', JSON.stringify(listaClientes));
+        }
+    
+        // Função para exibir a lista de clientes na página
+        function renderizarListaClientes() {
+            var listaClientes = getListaClientes();
+            var listaClientesElement = document.getElementById('listaClientes');
+            listaClientesElement.innerHTML = '';
+    
+            listaClientes.forEach(function (cliente, index) {
+                var li = document.createElement('li');
+                li.textContent = `Nome: ${cliente.nome} ${cliente.sobrenome}, Data de Nascimento: ${cliente.dataNascimento}, 
+                E-mail: ${cliente.email}, CEP: ${cliente.cep}, Endereço: ${cliente.endereco}`;
+    
+                // Adicionar botões "Alterar" e "Excluir" para cada cliente
+                var btnAlterar = document.createElement('button');
+                btnAlterar.textContent = 'Alterar';
+                btnAlterar.addEventListener('click', function () {
+                    alterarCliente(index);
+                });
+    
+                var btnExcluir = document.createElement('button');
+                btnExcluir.textContent = 'Excluir';
+                btnExcluir.addEventListener('click', function () {
+                    excluirCliente(index);
+                });
+    
+                li.appendChild(btnAlterar);
+                li.appendChild(btnExcluir);
+                listaClientesElement.appendChild(li);
+            });
+        }
+    
+        // Evento de clique para incluir um cliente
+        document.getElementById('incluirCliente').addEventListener('click', function () {
+            // Obter os valores dos campos
+            var nome = document.getElementById('nome').value;
+            var sobrenome = document.getElementById('sobrenome').value;
+            var dataNascimento = document.getElementById('dataNascimento').value;
+            var email = document.getElementById('email').value;
+            var cep = document.getElementById('cep').value;
+    
+            // Validar o CEP
+            if (!/^\d{5}-\d{3}$/.test(cep)) {
+                alert("CEP inválido. Use o formato nnnnn-ccc.");
+                return;
+            }
+    
+            // Conectar à API para informações de endereço
+            fetch(`https://viacep.com.br/ws/${cep}/json/`)
+                .then(response => response.json())
+                .then(data => {
+                    var endereco = `${data.logradouro}, ${data.bairro}, ${data.localidade}, ${data.uf}`;
+                    // Criar um objeto cliente com os dados
+                    var cliente = {
+                        nome: nome,
+                        sobrenome: sobrenome,
+                        dataNascimento: dataNascimento,
+                        email: email,
+                        cep: cep,
+                        endereco: endereco
+                    };
+    
+                    // Simulação de consulta ao banco de dados (usando localstorage)
+                    var endereco = consultarBancoDadosCEP(cep);
+    
+                    // Adicionar o cliente à lista de clientes
+                    var listaClientes = getListaClientes();
+                    listaClientes.push(cliente);
+                    saveListaClientes(listaClientes);
+    
+                    // Limpar os campos do formulário
+                    document.getElementById('clienteForm').reset();
+    
+                    // Renderizar a lista na página
+                    renderizarListaClientes();
+                })
+                .catch(error => {
+                    alert("Erro ao obter informações de endereço: " + error);
+                });
+        });
+    
+        // Função para simular consulta ao banco de dados para obter endereço a partir do CEP
+        function consultarBancoDadosCEP(cep) {
+            // Simulação de consulta - você pode substituir isso por uma chamada real ao banco de dados
+            var endereco = ''; // Obtenha o endereço real do banco de dados
+    
+            return endereco;
+        }
+    
+        // Evento de clique para chamar a tela de lista de clientes
+        document.getElementById('chamarTelaLista').addEventListener('click', function () {
+            document.getElementById('telaIncluirClientes').style.display = 'none';
+            document.getElementById('telaListaClientes').style.display = 'block';
+            renderizarListaClientes();
+        });
+    
+        // Evento de clique para voltar para a tela de incluir clientes
+        document.getElementById('voltarParaIncluir').addEventListener('click', function () {
+            document.getElementById('telaIncluirClientes').style.display = 'block';
+            document.getElementById('telaListaClientes').style.display = 'none';
+        });
+    
+        // Função para excluir um cliente da lista
+        function excluirCliente(index) {
+            var listaClientes = getListaClientes();
+            listaClientes.splice(index, 1);
+            saveListaClientes(listaClientes);
+            renderizarListaClientes();
+        }
+    
+        // Função para alterar um cliente na lista
+        function alterarCliente(index) {
+            var listaClientes = getListaClientes();
+            var clienteSelecionado = listaClientes[index];
+    
+            // Preencher os campos do formulário com os dados do cliente selecionado
+            document.getElementById('nome').value = clienteSelecionado.nome;
+            document.getElementById('sobrenome').value = clienteSelecionado.sobrenome;
+            document.getElementById('dataNascimento').value = clienteSelecionado.dataNascimento;
+            document.getElementById('email').value = clienteSelecionado.email;
+            document.getElementById('cep').value = clienteSelecionado.cep;
+    
+            // Remover o cliente da lista
+            listaClientes.splice(index, 1);
+            saveListaClientes(listaClientes);
+    
+            // Atualizar a lista na página
+            renderizarListaClientes();
+        }
+    
+        // Renderizar a lista de clientes ao carregar a página (caso haja dados no localstorage)
+        renderizarListaClientes();
+    </script>
+    
+
+    <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      margin: 0;
+      padding: 0;
+    }
+ 
+    h1 {
+      text-align: center;
+      background-color: #8a2be2; 
+      color: white;
+      padding: 20px;
+      margin: 0;
+    }
+ 
+    form {
+      max-width: 400px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+      text-align: left; 
+    }
+ 
+    label, input {
+      display: block;   
+      margin: 10px 0;
+    }
+ 
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      box-sizing: border-box; 
+    }
+ 
+    input[type="text"]:read-only {
+      background-color: #f2f2f2;
+    }
+ 
+    input:invalid {
+      border-color: #ccc; 
+    }
+ 
+    .button-container {
+  display: flex;
+  flex-direction: column; 
+  align-items: center; 
+}
+ 
+button {
+  background-color: #8a2be2;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  margin: 5px; 
+}
+ 
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0; 
+}
+ 
+li {
+  display: flex;
+  justify-content: center;
+}
+</style>
+</body>
+</html>
